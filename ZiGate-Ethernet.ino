@@ -1,7 +1,5 @@
 #include <WiFi.h>
-#ifdef BONJOUR_SUPPORT
 #include <ESPmDNS.h>
-#endif
 
 #include <WiFiClient.h>
 #include <WebServer.h>
@@ -56,10 +54,7 @@ String modeWiFi="STA";
 
 #define WL_MAC_ADDR_LENGTH 6
 
-#ifdef BONJOUR_SUPPORT
-// multicast DNS responder
-MDNSResponder mdns;
-#endif
+//MDNSResponder mdns;
 
 void WiFiEvent(WiFiEvent_t event) {
   switch (event) {
@@ -332,6 +327,18 @@ void setup(void)
     ETH.config(parse_ip_address(ConfigSettings.ipAddress), parse_ip_address(ConfigSettings.ipGW),parse_ip_address(ConfigSettings.ipMask));
   }
 
+
+  //Zeroconf
+  if(!MDNS.begin("ZiGate-Ethernet")) {
+     Serial.println("Error starting mDNS");
+     //return;
+  }
+
+  MDNS.addService("zigbee_gateway", "tcp", 9999);
+  MDNS.addServiceTxt("zigbee_gateway", "tcp", "radio_type", "zigate");
+  MDNS.addServiceTxt("zigbee_gateway", "tcp", "baud_rate", "115200");
+  MDNS.addServiceTxt("zigbee_gateway", "tcp", "tcp_port_serial_gateway", "9999");
+
   //Config PiZiGate
   pinMode(RESET_ZIGATE, OUTPUT);
   pinMode(FLASH_ZIGATE, OUTPUT);
@@ -342,8 +349,8 @@ void setup(void)
   server.begin();
 
 //GetVersion
-  uint8_t cmdVersion[10]={0x01,0x02,0x10,0x10,0x02,0x10,0x02,0x10,0x10,0x03};
-  Serial2.write(cmdVersion,10);
+ /* uint8_t cmdVersion[10]={0x01,0x02,0x10,0x10,0x02,0x10,0x02,0x10,0x10,0x03};
+  Serial2.write(cmdVersion,10);*/
 }
 
 String hexToDec(String hexString) {
