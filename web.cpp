@@ -2,23 +2,27 @@
 #include <ArduinoJson.h>
 #include <ETH.h>
 #include "WiFi.h"
-#include <WebServer.h>
+//#include "web.h"
+//#include <WebServer.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 #include "FS.h"
 #include "LITTLEFS.h"
-#include "web.h"
 #include "config.h"
 #include "log.h"
+
+#include "esp_adc_cal.h"
 
 extern struct ConfigSettingsStruct ConfigSettings;
 extern unsigned long timeLog;
 
 
-
-WebServer serverWeb(80);
+//WebServer serverWeb(80);
+AsyncWebServer serverWeb(80);
 
 void webServerHandleClient()
 {
-    serverWeb.handleClient();
+   // serverWeb.handleClient();
 }
 
 
@@ -207,79 +211,55 @@ const char HTTP_ROOT[] PROGMEM =
         "</div>"
      "</div>"
   "</div>"
+  "<div class='row'>"
+      "<div class='col-sm-6'>"
+        "<div class='card'>"
+            "<div class='card-header'>Infos</div>"
+            "<div class='card-body'>"
+              "<div id='wifiConfig'>"
+                "<strong>Tension USB: </strong>{{Voltage}} V"
+                "<br><strong>Tension Modem: </strong>{{VoltageModem}} V"
+              "</div>"
+            "</div>"
+        "</div>"
+     "</div>"
+  "</div>"
 
  
  ;
 
-void initWebServer()
-{
-  serverWeb.serveStatic("/web/js/jquery-min.js", LITTLEFS, "/web/js/jquery-min.js");
-  serverWeb.serveStatic("/web/js/functions.js", LITTLEFS, "/web/js/functions.js");
-  serverWeb.serveStatic("/web/js/bootstrap.min.js", LITTLEFS, "/web/js/bootstrap.min.js");
-  serverWeb.serveStatic("/web/js/bootstrap.min.js.map", LITTLEFS, "/web/js/bootstrap.min.js.map");
-  serverWeb.serveStatic("/web/css/bootstrap.min.css", LITTLEFS, "/web/css/bootstrap.min.css");
-  serverWeb.serveStatic("/web/css/style.css", LITTLEFS, "/web/css/style.css");
-  serverWeb.serveStatic("/web/img/logo.png", LITTLEFS, "/web/img/logo.png");
-  serverWeb.serveStatic("/web/img/wait.gif", LITTLEFS, "/web/img/wait.gif");
-  serverWeb.serveStatic("/web/img/nok.png", LITTLEFS, "/web/img/nok.png");
-  serverWeb.serveStatic("/web/img/ok.png", LITTLEFS, "/web/img/ok.png");
-  serverWeb.serveStatic("/web/img/", LITTLEFS, "/web/img/");
-  serverWeb.on("/", handleRoot);
-  serverWeb.on("/general", handleGeneral);
-  serverWeb.on("/wifi", handleWifi);
-  serverWeb.on("/ethernet", handleEther);
-  serverWeb.on("/serial", handleSerial);
-  serverWeb.on("/saveGeneral", HTTP_POST, handleSaveGeneral);
-  serverWeb.on("/saveSerial", HTTP_POST, handleSaveSerial);
-  serverWeb.on("/saveWifi", HTTP_POST, handleSaveWifi);
-  serverWeb.on("/saveEther", HTTP_POST, handleSaveEther);
-  serverWeb.on("/tools", handleTools);
-  serverWeb.on("/fsbrowser", handleFSbrowser);
-  serverWeb.on("/logs", handleLogs);
-  serverWeb.on("/reboot", handleReboot);
-  serverWeb.on("/update", handleUpdate);
-  serverWeb.on("/readFile", handleReadfile);
-  serverWeb.on("/saveFile", handleSavefile);
-  serverWeb.on("/getLogBuffer", handleLogBuffer);
-  serverWeb.on("/scanNetwork", handleScanNetwork);
-  serverWeb.on("/cmdClearConsole", handleClearConsole);
-  serverWeb.on("/cmdGetVersion", handleGetVersion);
-  serverWeb.on("/help", handleHelp);
-  serverWeb.onNotFound(handleNotFound);
-  serverWeb.begin();
-}
 
-void handleNotFound() {
+void handleNotFound(AsyncWebServerRequest * request) {
 
   String message = F("File Not Found\n\n");
   message += F("URI: ");
-  message += serverWeb.uri();
+  message += request->url();
   message += F("\nMethod: ");
-  message += (serverWeb.method() == HTTP_GET) ? "GET" : "POST";
+  message += (request->method() == HTTP_GET) ? "GET" : "POST";
   message += F("\nArguments: ");
-  message += serverWeb.args();
+  message += request->args();
   message += F("\n");
 
-  for (uint8_t i = 0; i < serverWeb.args(); i++) {
-    message += " " + serverWeb.argName(i) + ": " + serverWeb.arg(i) + "\n";
+  for (uint8_t i = 0; i < request->args(); i++) {
+    message += " " + request->argName(i) + ": " + request->arg(i) + "\n";
   }
 
-  serverWeb.send(404, F("text/plain"), message);
+  request->send(404, F("text/plain"), message);
 
 }
 
-void handleHelp() {
+void handleHelp(AsyncWebServerRequest * request) {
   String result;
   result += F("<html>");
   result += FPSTR(HTTP_HEADER);
   result += FPSTR(HTTP_HELP);
   result += F("</html>");
    
-  serverWeb.send(200,"text/html", result);
+  request->send(200,"text/html", result);
   
 }
 
-void handleGeneral() {
+void handleGeneral(AsyncWebServerRequest * request) {
   String result;
   result += F("<html>");
   result += FPSTR(HTTP_HEADER);
@@ -302,12 +282,12 @@ void handleGeneral() {
   result.replace("{{refreshLogs}}",(String)ConfigSettings.refreshLogs);
 
   
-  serverWeb.send(200,"text/html", result);
+  request->send(200,"text/html", result);
   
 }
 
 
-void handleWifi() {
+void handleWifi(AsyncWebServerRequest * request) {
   String result;
   result += F("<html>");
   result += FPSTR(HTTP_HEADER);
@@ -329,11 +309,11 @@ void handleWifi() {
   result.replace("{{port}}",String(ConfigSettings.tcpListenPort));
 
 
-  serverWeb.send(200,"text/html", result);
+  request->send(200,"text/html", result);
   
 }
 
-void handleSerial() {
+void handleSerial(AsyncWebServerRequest * request) {
   String result;
   result += F("<html>");
   result += FPSTR(HTTP_HEADER);
@@ -354,11 +334,11 @@ void handleSerial() {
      result.replace("{{selected115200}}","Selected");
   }
   
- serverWeb.send(200,"text/html", result);
+ request->send(200,"text/html", result);
   
 }
 
-void handleEther() {
+void handleEther(AsyncWebServerRequest * request) {
   String result;
   result += F("<html>");
   result += FPSTR(HTTP_HEADER);
@@ -376,12 +356,19 @@ void handleEther() {
   result.replace("{{GWEther}}",ConfigSettings.ipGW);
   result.replace("{{port}}",String(ConfigSettings.tcpListenPort));
   
-  serverWeb.send(200,"text/html", result);
+  request->send(200,"text/html", result);
   
 }
 
+uint32_t readADC_Cal(int ADC_Raw)
+{
+  esp_adc_cal_characteristics_t adc_chars;
+  
+  esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
+  return(esp_adc_cal_raw_to_voltage(ADC_Raw, &adc_chars));
+}
 
-void handleRoot() {
+void handleRoot(AsyncWebServerRequest * request) {
   String result;
   result += F("<html>");
   result += FPSTR(HTTP_HEADER);
@@ -417,38 +404,48 @@ void handleRoot() {
   }else{
     result.replace("{{connectedEther}}","<img src='/web/img/nok.png'>");
   }
- 
+  float val;
+  float Voltage = 0.0;
+  val = analogRead(35);
+  Voltage = (val*5300)/4095;
+  result.replace("{{Voltage}}",String(Voltage/1000));
 
-  serverWeb.send(200,"text/html", result);
+  val = analogRead(34);
+  Voltage = (val*5300)/4095;
+  result.replace("{{VoltageModem}}",String(Voltage/1000));
+  
+  request->send(200,"text/html", result);
   
 }
 
-void handleSaveGeneral()
+
+
+void handleSaveGeneral(AsyncWebServerRequest * request)
 {
   String StringConfig;
   String disableWeb;
   String enableHeartBeat;
   String refreshLogs;
   
-  if (serverWeb.arg("disableWeb")=="on")
+  if (request->arg("disableWeb")=="on")
   {
     disableWeb="1";
   }else{
     disableWeb="0";
   }
 
-  if (serverWeb.arg("enableHeartBeat")=="on")
+  if (request->arg("enableHeartBeat")=="on")
   {
     enableHeartBeat="1";
   }else{
     enableHeartBeat="0";
   }
 
-  if (serverWeb.arg("refreshLogs").toDouble()<1000)
+  if (request->arg("refreshLogs").toDouble()<1000)
   {
     refreshLogs="1000";
   }else{
-    refreshLogs=serverWeb.arg("refreshLogs");
+    refreshLogs=request->arg("refreshLogs");
   }
     
    const char * path = "/config/configGeneral.json";
@@ -464,30 +461,30 @@ void handleSaveGeneral()
    }else{
      serializeJson(doc, configFile);
    }
-  serverWeb.send(200, "text/html", "Save config OK ! <br><form method='GET' action='reboot'><input type='submit' name='reboot' value='Reboot'></form>");
+  request->send(200, "text/html", "Save config OK ! <br><form method='GET' action='reboot'><input type='submit' name='reboot' value='Reboot'></form>");
   
  
 }
 
 
-void handleSaveWifi()
+void handleSaveWifi(AsyncWebServerRequest * request)
 {
-  if(!serverWeb.hasArg("WIFISSID")) {serverWeb.send(500, "text/plain", "BAD ARGS"); return;}
+  if(!request->hasArg("WIFISSID")) {request->send(500, "text/plain", "BAD ARGS"); return;}
 
    String StringConfig;
    String enableWiFi;
-    if (serverWeb.arg("wifiEnable")=="on")
+    if (request->arg("wifiEnable")=="on")
     {
       enableWiFi="1";
     }else{
       enableWiFi="0";
     }
-    String ssid = serverWeb.arg("WIFISSID");
-    String pass = serverWeb.arg("WIFIpassword");
-    String ipAddress = serverWeb.arg("ipAddress");
-    String ipMask = serverWeb.arg("ipMask");
-    String ipGW = serverWeb.arg("ipGW");
-    String tcpListenPort = serverWeb.arg("tcpListenPort");
+    String ssid = request->arg("WIFISSID");
+    String pass = request->arg("WIFIpassword");
+    String ipAddress = request->arg("ipAddress");
+    String ipMask = request->arg("ipMask");
+    String ipGW = request->arg("ipGW");
+    String tcpListenPort = request->arg("tcpListenPort");
 
     const char * path = "/config/config.json";
 
@@ -502,15 +499,15 @@ void handleSaveWifi()
    }else{
      serializeJson(doc, configFile);
    }
-  serverWeb.send(200, "text/html", "Save config OK ! <br><form method='GET' action='reboot'><input type='submit' name='reboot' value='Reboot'></form>");
+  request->send(200, "text/html", "Save config OK ! <br><form method='GET' action='reboot'><input type='submit' name='reboot' value='Reboot'></form>");
   
  
 }
 
-void handleSaveSerial()
+void handleSaveSerial(AsyncWebServerRequest * request)
 {
   String StringConfig;
-  String serialSpeed = serverWeb.arg("baud");
+  String serialSpeed = request->arg("baud");
   const char * path="/config/configSerial.json";
 
   StringConfig = "{\"baud\":"+serialSpeed+"}";
@@ -525,24 +522,24 @@ void handleSaveSerial()
   }else{
    serializeJson(doc, configFile);
   }
-  serverWeb.send(200, "text/html", "Save config OK ! <br><form method='GET' action='reboot'><input type='submit' name='reboot' value='Reboot'></form>");
+  request->send(200, "text/html", "Save config OK ! <br><form method='GET' action='reboot'><input type='submit' name='reboot' value='Reboot'></form>");
 }
 
-void handleSaveEther()
+void handleSaveEther(AsyncWebServerRequest * request)
 {
-  if(!serverWeb.hasArg("ipAddress")) {serverWeb.send(500, "text/plain", "BAD ARGS"); return;}
+  if(!request->hasArg("ipAddress")) {request->send(500, "text/plain", "BAD ARGS"); return;}
 
    String StringConfig;
    String dhcp;
-    if (serverWeb.arg("dhcp")=="on")
+    if (request->arg("dhcp")=="on")
     {
       dhcp="1";
     }else{
       dhcp="0";
     }
-    String ipAddress = serverWeb.arg("ipAddress");
-    String ipMask = serverWeb.arg("ipMask");
-    String ipGW = serverWeb.arg("ipGW");
+    String ipAddress = request->arg("ipAddress");
+    String ipMask = request->arg("ipMask");
+    String ipGW = request->arg("ipGW");
 
     const char * path = "/config/configEther.json";
 
@@ -559,12 +556,12 @@ void handleSaveEther()
    }else{
      serializeJson(doc, configFile);
    }
-  serverWeb.send(200, "text/html", "Save config OK ! <br><form method='GET' action='reboot'><input type='submit' name='reboot' value='Reboot'></form>");
+  request->send(200, "text/html", "Save config OK ! <br><form method='GET' action='reboot'><input type='submit' name='reboot' value='Reboot'></form>");
   
  
 }
 
-void handleLogs() {
+void handleLogs(AsyncWebServerRequest * request) {
   String result;
   
   result += F("<html>");
@@ -591,10 +588,10 @@ void handleLogs() {
 
   result.replace("{{refreshLogs}}",(String)ConfigSettings.refreshLogs);
 
-  serverWeb.send(200, F("text/html"), result);
+  request->send(200, F("text/html"), result);
 }
 
-void handleTools() {
+void handleTools(AsyncWebServerRequest * request) {
   String result;
   
   result += F("<html>");
@@ -607,23 +604,24 @@ void handleTools() {
    result += F("<a href='/reboot' class='btn btn-primary mb-2'>Reboot</button>");
   result += F("</div></body></html>");
 
-  serverWeb.send(200, F("text/html"), result);
+  request->send(200, F("text/html"), result);
 }
 
-void handleReboot() {
+void handleReboot(AsyncWebServerRequest * request){
   String result;
   
   result += F("<html>");
   result += FPSTR(HTTP_HEADER);
    result +=F("<h1>Reboot ...</h1>");
   result = result + F("</body></html>");
-  serverWeb.sendHeader(F("Location"),F("/"));
-  serverWeb.send(303); 
+  AsyncWebServerResponse *response = request->beginResponse(303);
+  response->addHeader(F("Location"),F("/"));
+  request->send(response); 
 
   ESP.restart();
 }
 
-void handleUpdate() {
+void handleUpdate(AsyncWebServerRequest * request) {
   String result; 
   result += F("<html>");
   result += FPSTR(HTTP_HEADER);
@@ -635,10 +633,10 @@ void handleUpdate() {
 
   result = result + F("</body></html>");
 
-  serverWeb.send(200, F("text/html"), result);
+  request->send(200, F("text/html"), result);
 }
 
-void handleFSbrowser()
+void handleFSbrowser(AsyncWebServerRequest * request)
 {
   String result;
   result += F("<html>");
@@ -683,13 +681,14 @@ void handleFSbrowser()
     result +=F("</div>");
   result +=  F("</body></html>");
 
-  serverWeb.send(200, F("text/html"), result);
+  request->send(200, F("text/html"), result);
 }
 
-void handleReadfile()
+void handleReadfile(AsyncWebServerRequest * request)
 {
   String result;
-  String filename = "/config/"+serverWeb.arg(0);
+  uint8_t i=0;
+  String filename = "/config/"+request->arg(i);
   File file = LITTLEFS.open(filename, "r");
  
   if (!file) {
@@ -700,18 +699,19 @@ void handleReadfile()
     result += (char) file.read();
   }
   file.close();
-  serverWeb.send(200, F("text/html"), result);
+  request->send(200, F("text/html"), result);
 }
 
-void handleSavefile()
+void handleSavefile(AsyncWebServerRequest * request)
 {
-  if (serverWeb.method() != HTTP_POST) {
-    serverWeb.send(405, F("text/plain"), F("Method Not Allowed"));
+  if (request->method() != HTTP_POST) {
+    request->send(405, F("text/plain"), F("Method Not Allowed"));
     
   } else 
   {
-      String filename = "/config/"+serverWeb.arg(0);
-      String content = serverWeb.arg(1);
+      uint8_t i=0;
+      String filename = "/config/"+request->arg(i);
+      String content = request->arg(1);
       File file = LITTLEFS.open(filename, "w");
       if (!file) 
       {
@@ -731,20 +731,21 @@ void handleSavefile()
       }
      
       file.close();
-      serverWeb.sendHeader(F("Location"),F("/fsbrowser"));
-      serverWeb.send(303); 
+      AsyncWebServerResponse *response = request->beginResponse(303);
+      response->addHeader(F("Location"),F("/fsbrowser"));
+      request->send(response); 
     }
 }
 
-void handleLogBuffer()
+void handleLogBuffer(AsyncWebServerRequest * request)
 {
   String result;
   result = logPrint();
-  serverWeb.send(200, F("text/html"), result);
+  request->send(200, F("text/html"), result);
 
 }
 
-void handleScanNetwork()
+void handleScanNetwork(AsyncWebServerRequest * request)
 {
    String result="";
    int n = WiFi.scanNetworks();
@@ -764,16 +765,16 @@ void handleScanNetwork()
         }
         result += "</select>";
     }  
-    serverWeb.send(200, F("text/html"), result);
+    request->send(200, F("text/html"), result);
 }
-void handleClearConsole()
+void handleClearConsole(AsyncWebServerRequest * request)
 {
   logClear();
   
-  serverWeb.send(200, F("text/html"), "");
+  request->send(200, F("text/html"), "");
 }
 
-void handleGetVersion()
+void handleGetVersion(AsyncWebServerRequest * request)
 {
   //\01\02\10\10\02\10\02\10\10\03
   char output_sprintf[2];
@@ -813,5 +814,107 @@ void handleGetVersion()
     logPush(output_sprintf[1]);
   }
   logPush('\n');
-  serverWeb.send(200, F("text/html"), "");
+  request->send(200, F("text/html"), "");
+}
+
+void initWebServer()
+{
+  serverWeb.serveStatic("/web/js/jquery-min.js", LITTLEFS, "/web/js/jquery-min.js");
+  serverWeb.serveStatic("/web/js/functions.js", LITTLEFS, "/web/js/functions.js");
+  serverWeb.serveStatic("/web/js/bootstrap.min.js", LITTLEFS, "/web/js/bootstrap.min.js");
+  serverWeb.serveStatic("/web/js/bootstrap.min.js.map", LITTLEFS, "/web/js/bootstrap.min.js.map");
+  serverWeb.serveStatic("/web/css/bootstrap.min.css", LITTLEFS, "/web/css/bootstrap.min.css");
+  serverWeb.serveStatic("/web/css/style.css", LITTLEFS, "/web/css/style.css");
+  serverWeb.serveStatic("/web/img/logo.png", LITTLEFS, "/web/img/logo.png");
+  serverWeb.serveStatic("/web/img/wait.gif", LITTLEFS, "/web/img/wait.gif");
+  serverWeb.serveStatic("/web/img/nok.png", LITTLEFS, "/web/img/nok.png");
+  serverWeb.serveStatic("/web/img/ok.png", LITTLEFS, "/web/img/ok.png");
+  serverWeb.serveStatic("/web/img/", LITTLEFS, "/web/img/");
+
+  serverWeb.on("/",HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleRoot(request);
+  });
+  serverWeb.on("/general", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleGeneral(request);
+  });
+  serverWeb.on("/wifi", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleWifi(request);
+  });
+  serverWeb.on("/ethernet",HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleEther(request);
+  });
+  serverWeb.on("/serial", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleSerial(request);
+  });
+  serverWeb.on("/saveGeneral", HTTP_POST, [](AsyncWebServerRequest * request)
+  {
+    handleSaveGeneral(request);
+  });
+  serverWeb.on("/saveSerial", HTTP_POST, [](AsyncWebServerRequest * request)
+  {
+    handleSaveSerial(request);
+  });
+  serverWeb.on("/saveWifi", HTTP_POST, [](AsyncWebServerRequest * request)
+  {
+    handleSaveWifi(request);
+  });
+  serverWeb.on("/saveEther", HTTP_POST, [](AsyncWebServerRequest * request)
+  {
+    handleSaveEther(request);
+  });
+  serverWeb.on("/tools",  HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleTools(request);
+  });
+  serverWeb.on("/fsbrowser", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleFSbrowser(request);
+  });
+  serverWeb.on("/logs", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleLogs(request);
+  });
+  serverWeb.on("/reboot",HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleReboot(request);
+  });
+  serverWeb.on("/update", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleUpdate(request);
+  });
+  serverWeb.on("/readFile",  HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleReadfile(request);
+  });
+  serverWeb.on("/saveFile",  HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleSavefile(request);
+  });
+  serverWeb.on("/getLogBuffer", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleLogBuffer(request);
+  });
+  serverWeb.on("/scanNetwork",  HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleScanNetwork(request);
+  });
+  serverWeb.on("/cmdClearConsole", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleClearConsole(request);
+  });
+  serverWeb.on("/cmdGetVersion",HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleGetVersion(request);
+  });
+  serverWeb.on("/help", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    handleHelp(request);
+  });
+  serverWeb.onNotFound(handleNotFound);
+  serverWeb.begin();
 }
