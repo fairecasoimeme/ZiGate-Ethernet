@@ -42,6 +42,7 @@ ConfigSettingsStruct ConfigSettings;
 ZiGateInfosStruct ZiGateInfos;
 bool configOK=false;
 String modeWiFi="STA";
+String macID;
 
 #define BAUD_RATE 38400
 #define TCP_LISTEN_PORT 9999
@@ -212,7 +213,7 @@ void setupWifiAP()
   
   uint8_t mac[WL_MAC_ADDR_LENGTH];
   WiFi.softAPmacAddress(mac);
-  String macID = String(mac[WL_MAC_ADDR_LENGTH - 2], HEX) +
+  macID = String(mac[WL_MAC_ADDR_LENGTH - 2], HEX) +
                  String(mac[WL_MAC_ADDR_LENGTH - 1], HEX);
   macID.toUpperCase();
   String AP_NameString = "ZIGATE-" + macID;
@@ -329,15 +330,16 @@ void setup(void)
 
 
   //Zeroconf
-  if(!MDNS.begin("ZiGate-Ethernet")) {
+  String localdns = "ZiGate-Ethernet";
+  if(!MDNS.begin(localdns.c_str())) {
      Serial.println("Error starting mDNS");
      //return;
   }
 
-  MDNS.addService("zigbee_gateway", "tcp", 9999);
-  MDNS.addServiceTxt("zigbee_gateway", "tcp", "radio_type", "zigate");
+  MDNS.addService("zigate_zigbee_gateway", "tcp", 9999);
+  MDNS.addServiceTxt("zigate_zigbee_gateway", "tcp", "radio_type", "zigate");
   MDNS.addServiceTxt("zigbee_gateway", "tcp", "baud_rate", "115200");
-  MDNS.addServiceTxt("zigbee_gateway", "tcp", "tcp_port_serial_gateway", "9999");
+  MDNS.addServiceTxt("zigbee_gateway", "tcp", "data_flow_control", "software");
 
   //Config PiZiGate
   pinMode(RESET_ZIGATE, OUTPUT);
