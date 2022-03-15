@@ -338,8 +338,9 @@ void setup(void)
 
   MDNS.addService("zigate_zigbee_gateway", "tcp", 9999);
   MDNS.addServiceTxt("zigate_zigbee_gateway", "tcp", "radio_type", "zigate");
-  MDNS.addServiceTxt("zigbee_gateway", "tcp", "baud_rate", "115200");
-  MDNS.addServiceTxt("zigbee_gateway", "tcp", "data_flow_control", "software");
+  MDNS.addServiceTxt("zigate_gateway", "tcp", "baud_rate", "115200");
+  MDNS.addServiceTxt("zigate_gateway", "tcp", "data_flow_control", "software");
+
 
   //Config PiZiGate
   pinMode(RESET_ZIGATE, OUTPUT);
