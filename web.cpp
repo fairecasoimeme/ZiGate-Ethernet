@@ -211,19 +211,7 @@ const char HTTP_ROOT[] PROGMEM =
         "</div>"
      "</div>"
   "</div>"
-  "<div class='row'>"
-      "<div class='col-sm-6'>"
-        "<div class='card'>"
-            "<div class='card-header'>Infos</div>"
-            "<div class='card-body'>"
-              "<div id='wifiConfig'>"
-                "<strong>Tension USB: </strong>{{Voltage}} V"
-                "<br><strong>Tension Modem: </strong>{{VoltageModem}} V"
-              "</div>"
-            "</div>"
-        "</div>"
-     "</div>"
-  "</div>"
+  
 
  
  ;
