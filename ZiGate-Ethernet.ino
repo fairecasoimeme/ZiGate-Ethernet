@@ -48,14 +48,13 @@ String macID;
 #define TCP_LISTEN_PORT 9999
 
 // if the bonjour support is turned on, then use the following as the name
-#define DEVICE_NAME "ser2net"
+#define DEVICE_NAME "ZiGate"
 
 // serial end ethernet buffer size
 #define BUFFER_SIZE 256
 
 #define WL_MAC_ADDR_LENGTH 6
 
-//MDNSResponder mdns;
 
 void WiFiEvent(WiFiEvent_t event) {
   switch (event) {
@@ -336,11 +335,7 @@ void setup(void)
      //return;
   }
 
-  MDNS.addService("zigate_zigbee_gateway", "tcp", 9999);
-  MDNS.addServiceTxt("zigate_zigbee_gateway", "tcp", "radio_type", "zigate");
-  MDNS.addServiceTxt("zigate_gateway", "tcp", "baud_rate", "115200");
-  MDNS.addServiceTxt("zigate_gateway", "tcp", "data_flow_control", "software");
-
+ 
 
   //Config PiZiGate
   pinMode(RESET_ZIGATE, OUTPUT);
@@ -351,6 +346,12 @@ void setup(void)
   initWebServer();
   server.begin();
 
+ 
+  MDNS.addService("zigate-zigbee-gateway", "tcp", 9999);
+  MDNS.addServiceTxt("zigate-zigbee-gateway", "tcp", "version", "1.0");
+  MDNS.addServiceTxt("zigate-zigbee-gateway", "tcp", "radio_type", "zigate");
+  MDNS.addServiceTxt("zigate-zigbee-gateway", "tcp", "baud_rate", "115200");
+  MDNS.addServiceTxt("zigate-zigbee-gateway", "tcp", "data_flow_control", "software");
 //GetVersion
  /* uint8_t cmdVersion[10]={0x01,0x02,0x10,0x10,0x02,0x10,0x02,0x10,0x10,0x03};
   Serial2.write(cmdVersion,10);*/
