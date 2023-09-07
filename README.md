@@ -1,3 +1,9 @@
+# DEPRECATED
+
+⚠️ ⚠️ ⚠️ THIS REPOSITORY IS NO LONGER SUPPORTED. ⚠️ ⚠️ ⚠️  
+
+The new repository is here : [LiXee-ZiBridge](https://github.com/fairecasoimeme/LiXee-ZiBridge)
+
 # ZiGate-Ethernet
  Ethernet platform for PiZiGate.
  For more informations, please go to the [description page](https://zigate.fr/documentation/descriptif-de-la-zigate-ethernet/)
